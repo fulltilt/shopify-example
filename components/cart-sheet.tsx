@@ -27,9 +27,9 @@ export function CartSheet() {
   const updateCartItem = useUpdateCartItem();
   const removeFromCart = useRemoveFromCart();
 
-  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = async (lineId: string, newQuantity: number) => {
     try {
-      await updateCartItem.mutateAsync({ itemId, quantity: newQuantity });
+      await updateCartItem.mutateAsync({ lineId, quantity: newQuantity });
     } catch (error) {
       toast.error("Error", {
         description: "Failed to update cart item",
@@ -37,9 +37,9 @@ export function CartSheet() {
     }
   };
 
-  const handleRemoveItem = async (itemId: string) => {
+  const handleRemoveItem = async (lineId: string) => {
     try {
-      await removeFromCart.mutateAsync(itemId);
+      await removeFromCart.mutateAsync(lineId);
       toast.success("Item removed", {
         description: "Item has been removed from your cart",
       });
@@ -178,9 +178,13 @@ export function CartSheet() {
                 </div>
               </div>
               <Button className="w-full" asChild>
-                <Link href="/checkout" onClick={() => setOpen(false)}>
-                  Checkout
-                </Link>
+                <a
+                  href={cart.checkoutUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Checkout with Shopify
+                </a>
               </Button>
             </div>
           </>

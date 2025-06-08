@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useProducts } from "@/hooks/use-products";
+import { useProducts, type Product } from "@/hooks/use-products";
 
 export default function HomePage() {
   const { data, isLoading, error } = useProducts();
 
-  const featuredProducts = data?.products?.slice(0, 3) || [];
+  const featuredProducts: Product[] = data?.products?.slice(0, 3) || [];
 
   return (
     <div className="flex flex-col">

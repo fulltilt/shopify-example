@@ -13,11 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Star, Heart, Share2, Truck, Shield, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
+import { Heart, Share2, Truck, Shield, RotateCcw } from "lucide-react";
+
 import { useProduct } from "@/hooks/use-products";
 import { useAddToCart } from "@/hooks/use-cart";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface ProductPageProps {
   params: {
@@ -92,9 +93,8 @@ export default function ProductPage({ params }: ProductPageProps) {
 
     try {
       await addToCartMutation.mutateAsync({
-        productVariantId: selectedVariant.id,
+        variantId: selectedVariant.id,
         quantity,
-        price: selectedVariant.price,
       });
 
       toast.success("Added to cart!", {
@@ -146,27 +146,6 @@ export default function ProductPage({ params }: ProductPageProps) {
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-            <div className="flex items-center gap-4 mb-4">
-              {product.rating !== undefined &&
-                product.reviewCount !== undefined && (
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-4 h-4 ${
-                          i < Math.floor(product.rating || 0)
-                            ? "fill-yellow-400 text-yellow-400"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                    <span className="text-sm text-muted-foreground ml-2">
-                      {product.rating?.toFixed(1)} ({product.reviewCount}{" "}
-                      reviews)
-                    </span>
-                  </div>
-                )}
-            </div>
             <div className="flex items-center gap-2 mb-4">
               <span className="text-3xl font-bold">
                 ${selectedVariant?.price || product.price}
