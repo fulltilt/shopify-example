@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clerkUserId  String   @unique @map("clerk_user_id")
+  email        String
+  firstName    String?  @map("first_name")
+  lastName     String?  @map("last_name")
+  phone        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  addresses Address[]
+  carts     Cart[]
+  orders    Order[]
+  wishlists Wishlist[]
+  reviews   Review[]
+
+  @@map("users")
+}
+
+model Address {
+  id            String  @id @default(cuid())
+  userId        String  @map("user_id")
+  type          AddressType
+  firstName     String  @map("first_name")
+  lastName      String  @map("last_name")
+  company       String?
+  addressLine1  String  @map("address_line_1")
+  addressLine2  String? @map("address_line_2")
+  city          String
+  state         String
+  postalCode    String  @map("postal_code")
+  country       String  @default("United States")
+  isDefault     Boolean @default(false) @map("is_default")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  shopifyId   String   @unique @map("shopify_id")
+  title       String
+  description String?
+  handle      String
+  productType String?  @map("product_type")
+  vendor      String?
+  tags        String[]
+  status      String   @default("active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  variants ProductVariant[]
+  images   ProductImage[]
+  reviews  Review[]
+
+  @@map("products")
+}
+
+model ProductVariant {
+  id                 String   @id @default(cuid())
+  productId          String   @map("product_id")
+  shopifyVariantId   String   @unique @map("shopify_variant_id")
+  title              String
+  price              Decimal  @db.Decimal(10, 2)
+  compareAtPrice     Decimal? @map("compare_at_price") @db.Decimal(10, 2)
+  sku                String?
+  inventoryQuantity  Int      @default(0) @map("inventory_quantity")
+  size               String?
+  color              String?
+  material           String?
+  weight             Decimal? @db.Decimal(8, 2)
+  requiresShipping   Boolean  @default(true) @map("requires_shipping")
+  taxable            Boolean  @default(true)
+  available          Boolean  @default(true)
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+  orderItems OrderItem[]
+  wishlists Wishlist[]
+
+  @@map("product_variants")
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String   @map("product_id")
+  shopifyImageId String? @map("shopify_image_id")
+  src       String
+  altText   String?  @map("alt_text")
+  position  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_images")
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @map("user_id")
+  sessionId String?    @map("session_id")
+  status    CartStatus @default(ACTIVE)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id               String   @id @default(cuid())
+  cartId           String   @map("cart_id")
+  productVariantId String   @map("product_variant_id")
+  quantity         Int      @default(1)
+  price            Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productVariantId])
+  @@map("cart_items")
+}
+
+model Order {
+  id                String            @id @default(cuid())
+  userId            String?           @map("user_id")
+  orderNumber       String            @unique @map("order_number")
+  shopifyOrderId    String?           @map("shopify_order_id")
+  email             String
+  status            OrderStatus       @default(PENDING)
+  financialStatus   FinancialStatus   @default(PENDING) @map("financial_status")
+  fulfillmentStatus FulfillmentStatus @default(UNFULFILLED) @map("fulfillment_status")
+  subtotal          Decimal           @db.Decimal(10, 2)
+  taxAmount         Decimal           @default(0) @map("tax_amount") @db.Decimal(10, 2)
+  shippingAmount    Decimal           @default(0) @map("shipping_amount") @db.Decimal(10, 2)
+  discountAmount    Decimal           @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  totalAmount       Decimal           @map("total_amount") @db.Decimal(10, 2)
+  currency          String            @default("USD")
+  notes             String?
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  user      User?          @relation(fields: [userId], references: [id])
+  items     OrderItem[]
+  addresses OrderAddress[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String   @id @default(cuid())
+  orderId          String   @map("order_id")
+  productVariantId String?  @map("product_variant_id")
+  title            String
+  variantTitle     String?  @map("variant_title")
+  sku              String?
+  quantity         Int
+  price            Decimal  @db.Decimal(10, 2)
+  total            Decimal  @db.Decimal(10, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderAddress {
+  id           String      @id @default(cuid())
+  orderId      String      @map("order_id")
+  type         AddressType
+  firstName    String      @map("first_name")
+  lastName     String      @map("last_name")
+  company      String?
+  addressLine1 String      @map("address_line_1")
+  addressLine2 String?     @map("address_line_2")
+  city         String
+  state        String
+  postalCode   String      @map("postal_code")
+  country      String
+  phone        String?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_addresses")
+}
+
+model Wishlist {
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  productVariantId String   @map("product_variant_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productVariantId])
+  @@map("wishlists")
+}
+
+model Review {
+  id               String      @id @default(cuid())
+  userId           String      @map("user_id")
+  productId        String      @map("product_id")
+  orderId          String?     @map("order_id")
+  rating           Int
+  title            String?
+  content          String?
+  verifiedPurchase Boolean     @default(false) @map("verified_purchase")
+  status           ReviewStatus @default(PENDING)
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("reviews")
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+
+  @@map("address_type")
+}
+
+enum CartStatus {
+  ACTIVE
+  ABANDONED
+  CONVERTED
+
+  @@map("cart_status")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+
+  @@map("order_status")
+}
+
+enum FinancialStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  PARTIALLY_PAID
+  REFUNDED
+  VOIDED
+
+  @@map("financial_status")
+}
+
+enum FulfillmentStatus {
+  UNFULFILLED
+  PARTIAL
+  FULFILLED
+
+  @@map("fulfillment_status")
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@map("review_status")
+}
