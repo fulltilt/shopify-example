@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useProducts } from "@/hooks/use-products";
+import { Product, useProducts } from "@/hooks/use-products";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ProductsPage() {
@@ -59,7 +59,7 @@ export default function ProductsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {products.map((product) => (
+        {products.map((product: Product) => (
           <Card
             key={product.id}
             className="group cursor-pointer overflow-hidden"

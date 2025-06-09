@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAllProducts, getProductByHandle } from "@/lib/shopify";
+import { ShopifyProduct } from "@/lib/types";
 
 export interface Product {
   id: string;
@@ -29,7 +30,7 @@ export interface Product {
   vendor?: string;
 }
 
-function transformShopifyProduct(shopifyProduct: any): Product {
+function transformShopifyProduct(shopifyProduct: ShopifyProduct): Product {
   return {
     id: shopifyProduct.id,
     title: shopifyProduct.title,

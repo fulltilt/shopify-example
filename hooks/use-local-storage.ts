@@ -10,18 +10,24 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     try {
       if (typeof window !== "undefined") {
         const item = window.localStorage.getItem(key);
-        if (item) {
+        if (item && item !== "null" && item !== "undefined") {
           const parsedValue = JSON.parse(item);
           setStoredValue(parsedValue);
-          console.log(`Loaded from localStorage [${key}]:`, parsedValue);
+          console.log(`📦 Loaded from localStorage [${key}]:`, parsedValue);
+        } else {
+          console.log(
+            `📦 No value found in localStorage for [${key}], using initial value:`,
+            initialValue
+          );
         }
       }
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      console.error(`❌ Error reading localStorage key "${key}":`, error);
     } finally {
       setIsLoaded(true);
+      console.log(`✅ LocalStorage loaded for [${key}]`);
     }
-  }, [key]);
+  }, [key, initialValue]);
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
@@ -30,11 +36,16 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       setStoredValue(valueToStore);
 
       if (typeof window !== "undefined") {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-        console.log(`Saved to localStorage [${key}]:`, valueToStore);
+        if (valueToStore === null || valueToStore === undefined) {
+          window.localStorage.removeItem(key);
+          console.log(`🗑️ Removed from localStorage [${key}]`);
+        } else {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          console.log(`💾 Saved to localStorage [${key}]:`, valueToStore);
+        }
       }
     } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
+      console.error(`❌ Error setting localStorage key "${key}":`, error);
     }
   };
 

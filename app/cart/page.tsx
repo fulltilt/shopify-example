@@ -14,6 +14,7 @@ import {
 } from "@/hooks/use-cart";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { CartDebug } from "@/components/cart-debug";
 
 export default function CartPage() {
   const { data: cart, isLoading } = useCart();
@@ -105,6 +106,7 @@ export default function CartPage() {
               Continue Shopping
             </Link>
           </Button>
+          <CartDebug />
         </div>
       </div>
     );
@@ -287,6 +289,8 @@ export default function CartPage() {
             </Card>
           </div>
         </div>
+
+        <CartDebug />
       </div>
     </div>
   );

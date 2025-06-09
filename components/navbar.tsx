@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
 import { CartSheet } from "@/components/cart-sheet";
+import { ProductSearch } from "@/components/product-search";
 
 export function Navbar() {
   const { isSignedIn } = useUser();
@@ -33,12 +33,14 @@ export function Navbar() {
             >
               Collections
             </Link>
-            <Link
-              href="/cart"
-              className="transition-colors hover:text-foreground/80"
-            >
-              Cart
-            </Link>
+            {isSignedIn && (
+              <Link
+                href="/orders"
+                className="transition-colors hover:text-foreground/80"
+              >
+                Orders
+              </Link>
+            )}
             <Link
               href="/about"
               className="transition-colors hover:text-foreground/80"
@@ -76,9 +78,11 @@ export function Navbar() {
                 <Link href="/collections" className="text-foreground/70">
                   Collections
                 </Link>
-                <Link href="/cart" className="text-foreground/70">
-                  Cart
-                </Link>
+                {isSignedIn && (
+                  <Link href="/orders" className="text-foreground/70">
+                    Orders
+                  </Link>
+                )}
                 <Link href="/about" className="text-foreground/70">
                   About
                 </Link>
@@ -91,16 +95,7 @@ export function Navbar() {
         </Sheet>
 
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search products..."
-                className="pl-8 md:w-[300px] lg:w-[400px]"
-              />
-            </div>
-          </div>
+          <ProductSearch className="w-full flex-1 md:w-auto md:flex-none" />
           <nav className="flex items-center space-x-2">
             {!isSignedIn ? (
               <>

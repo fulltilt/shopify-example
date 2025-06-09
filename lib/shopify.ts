@@ -16,6 +16,12 @@ export async function shopifyFetch({
   variables?: any;
 }) {
   try {
+    console.log("Fetching from Shopify:", endpoint);
+    console.log(
+      "Using token:",
+      SHOPIFY_STOREFRONT_ACCESS_TOKEN!.substring(0, 5) + "..."
+    );
+
     const result = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -26,12 +32,21 @@ export async function shopifyFetch({
     });
 
     if (!result.ok) {
-      throw new Error(`HTTP error! status: ${result.status}`);
+      const errorText = await result.text();
+      console.error("Shopify API error:", {
+        status: result.status,
+        statusText: result.statusText,
+        body: errorText,
+      });
+      throw new Error(
+        `Shopify API error: ${result.status} ${result.statusText}`
+      );
     }
 
     const data = await result.json();
-    console.log(data);
+
     if (data.errors) {
+      console.error("GraphQL errors:", data.errors);
       throw new Error(data.errors[0].message);
     }
 
@@ -158,10 +173,102 @@ export async function getProductByHandle(handle: string) {
   return shopifyFetch({ query, variables: { handle } });
 }
 
-export async function createCart() {
+export async function getCustomerOrders(email: string) {
   const query = `
-    mutation cartCreate {
-      cartCreate {
+    query GetCustomerOrders($customerAccessToken: String!) {
+      customer(customerAccessToken: $customerAccessToken) {
+        id
+        email
+        firstName
+        lastName
+        orders(first: 50) {
+          edges {
+            node {
+              id
+              orderNumber
+              processedAt
+              financialStatus
+              fulfillmentStatus
+              totalPrice {
+                amount
+                currencyCode
+              }
+              subtotalPrice {
+                amount
+                currencyCode
+              }
+              totalTax {
+                amount
+                currencyCode
+              }
+              totalShippingPrice {
+                amount
+                currencyCode
+              }
+              lineItems(first: 50) {
+                edges {
+                  node {
+                    title
+                    quantity
+                    variant {
+                      id
+                      title
+                      price {
+                        amount
+                        currencyCode
+                      }
+                      image {
+                        url
+                        altText
+                      }
+                      product {
+                        handle
+                        title
+                      }
+                    }
+                  }
+                }
+              }
+              shippingAddress {
+                firstName
+                lastName
+                address1
+                address2
+                city
+                province
+                country
+                zip
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  return shopifyFetch({ query, variables: { customerAccessToken: email } });
+}
+
+// Note: The Storefront API has limited access to orders
+// This is a simplified version - in production you'd need to use the Admin API
+// or implement customer accounts properly
+export async function getOrdersByEmail(email: string) {
+  // This is a placeholder - Storefront API doesn't directly support querying orders by email
+  // You would need to implement this using the Admin API on your backend
+  console.log("Note: Order lookup by email requires Admin API implementation");
+
+  // For now, return empty array
+  return { orders: { edges: [] } };
+}
+
+// Enhanced cart creation with customer association
+export async function createCart(buyerIdentity?: {
+  email?: string;
+  customerAccessToken?: string;
+}) {
+  const query = `
+    mutation cartCreate($input: CartInput!) {
+      cartCreate(input: $input) {
         cart {
           id
           checkoutUrl
@@ -216,7 +323,13 @@ export async function createCart() {
     }
   `;
 
-  return shopifyFetch({ query });
+  const input: any = {};
+
+  if (buyerIdentity) {
+    input.buyerIdentity = buyerIdentity;
+  }
+
+  return shopifyFetch({ query, variables: { input } });
 }
 
 export async function addToCart(
