@@ -75,46 +75,104 @@ export function useCart() {
   return useQuery({
     queryKey: ["cart", cartId],
     queryFn: async () => {
-      if (!cartId) {
-        // Create new cart
-        const data = await createCart();
-        const newCartId = data.cartCreate.cart.id;
-        setCartId(newCartId);
-        return transformShopifyCart(data.cartCreate.cart);
+      console.log("Fetching cart with ID:", cartId);
+
+      // If we have a cart ID, try to fetch the existing cart first
+      if (cartId) {
+        try {
+          const data = await getCart(cartId);
+          if (data.cart) {
+            console.log("Found existing cart:", data.cart.id);
+            return transformShopifyCart(data.cart);
+          } else {
+            console.log("Cart not found, creating new one");
+          }
+        } catch (error) {
+          console.error("Error fetching cart:", error);
+          // If cart fetch fails, we'll create a new one below
+        }
       }
 
-      // Get existing cart
-      const data = await getCart(cartId);
-      if (!data.cart) {
-        // Cart doesn't exist, create new one
-        const newData = await createCart();
-        const newCartId = newData.cartCreate.cart.id;
-        setCartId(newCartId);
-        return transformShopifyCart(newData.cartCreate.cart);
-      }
-
-      return transformShopifyCart(data.cart);
+      // Create new cart if no existing cart found
+      console.log("Creating new cart...");
+      const data = await createCart();
+      const newCartId = data.cartCreate.cart.id;
+      console.log("New cart created:", newCartId);
+      setCartId(newCartId);
+      return transformShopifyCart(data.cartCreate.cart);
     },
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes
+    retry: 1,
   });
 }
 
 export function useAddToCart() {
   const queryClient = useQueryClient();
-  const [cartId] = useLocalStorage<string | null>("shopify-cart-id", null);
+  const [cartId, setCartId] = useLocalStorage<string | null>(
+    "shopify-cart-id",
+    null
+  );
 
   return useMutation({
     mutationFn: async (data: { variantId: string; quantity: number }) => {
-      if (!cartId) {
-        throw new Error("No cart found");
+      // Validate inputs
+      if (!data.variantId || data.variantId.trim() === "") {
+        throw new Error("Invalid variant ID provided");
       }
-      return addToCart(cartId, data.variantId, data.quantity);
+
+      if (data.quantity <= 0) {
+        throw new Error("Quantity must be greater than 0");
+      }
+
+      console.log("Adding to cart with data:", data);
+
+      let currentCartId = cartId;
+
+      // If no cart exists, create one first
+      if (!currentCartId) {
+        console.log("No cart ID found, creating new cart...");
+        const newCartData = await createCart();
+        currentCartId = newCartData.cartCreate.cart.id;
+        setCartId(currentCartId);
+        console.log("New cart created for add to cart:", currentCartId);
+      }
+
+      // Now add the item to the cart
+      console.log(
+        "Adding item to cart:",
+        currentCartId,
+        data.variantId,
+        data.quantity
+      );
+      const result = await addToCart(
+        currentCartId!,
+        data.variantId,
+        data.quantity
+      );
+
+      // Update the cart ID in case it changed
+      const updatedCartId = result.cartLinesAdd.cart.id;
+      if (updatedCartId !== currentCartId) {
+        setCartId(updatedCartId);
+      }
+
+      return result;
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["cart", cartId],
-        transformShopifyCart(data.cartLinesAdd.cart)
-      );
+      console.log("Add to cart success:", data);
+      const cart = data.cartLinesAdd.cart;
+      const cartData = transformShopifyCart(cart);
+
+      // Update both possible query keys
+      queryClient.setQueryData(["cart", cart.id], cartData);
+      queryClient.setQueryData(["cart", cartId], cartData);
+
+      // Invalidate to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+    },
+    onError: (error) => {
+      console.error("Add to cart error:", error);
     },
   });
 }
@@ -126,17 +184,27 @@ export function useUpdateCartItem() {
   return useMutation({
     mutationFn: async (data: { lineId: string; quantity: number }) => {
       if (!cartId) {
-        throw new Error("No cart found");
+        throw new Error(
+          "No cart found. Please refresh the page and try again."
+        );
       }
+
+      // If quantity is 0, remove the item instead
+      if (data.quantity === 0) {
+        return removeFromCart(cartId, [data.lineId]);
+      }
+
       return updateCartLines(cartId, [
         { id: data.lineId, quantity: data.quantity },
       ]);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["cart", cartId],
-        transformShopifyCart(data.cartLinesUpdate.cart)
-      );
+      const cart = data.cartLinesUpdate?.cart || data.cartLinesRemove?.cart;
+      if (cart) {
+        const cartData = transformShopifyCart(cart);
+        queryClient.setQueryData(["cart", cartId], cartData);
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+      }
     },
   });
 }
@@ -148,15 +216,16 @@ export function useRemoveFromCart() {
   return useMutation({
     mutationFn: async (lineId: string) => {
       if (!cartId) {
-        throw new Error("No cart found");
+        throw new Error(
+          "No cart found. Please refresh the page and try again."
+        );
       }
       return removeFromCart(cartId, [lineId]);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["cart", cartId],
-        transformShopifyCart(data.cartLinesRemove.cart)
-      );
+      const cartData = transformShopifyCart(data.cartLinesRemove.cart);
+      queryClient.setQueryData(["cart", cartId], cartData);
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
     },
   });
 }

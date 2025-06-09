@@ -177,15 +177,22 @@ export function CartSheet() {
                   <span className="font-medium">${cart.total.toFixed(2)}</span>
                 </div>
               </div>
-              <Button className="w-full" asChild>
-                <a
-                  href={cart.checkoutUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Checkout with Shopify
-                </a>
-              </Button>
+              <div className="space-y-2">
+                <Button className="w-full" asChild>
+                  <a
+                    href={cart.checkoutUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Checkout
+                  </a>
+                </Button>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link href="/cart" onClick={() => setOpen(false)}>
+                    View Full Cart
+                  </Link>
+                </Button>
+              </div>
             </div>
           </>
         )}

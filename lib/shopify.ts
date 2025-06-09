@@ -30,7 +30,7 @@ export async function shopifyFetch({
     }
 
     const data = await result.json();
-
+    console.log(data);
     if (data.errors) {
       throw new Error(data.errors[0].message);
     }

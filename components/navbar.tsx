@@ -1,17 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingBag, Search, Menu } from "lucide-react";
+import { Search, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import { SignInButton, SignUpButton, UserButton, useUser } from "@clerk/nextjs";
-import { useState } from "react";
+import { CartSheet } from "@/components/cart-sheet";
 
 export function Navbar() {
   const { isSignedIn } = useUser();
-  const [cartItemCount] = useState(0); // This would come from cart context
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -34,6 +32,12 @@ export function Navbar() {
               className="transition-colors hover:text-foreground/80"
             >
               Collections
+            </Link>
+            <Link
+              href="/cart"
+              className="transition-colors hover:text-foreground/80"
+            >
+              Cart
             </Link>
             <Link
               href="/about"
@@ -71,6 +75,9 @@ export function Navbar() {
                 </Link>
                 <Link href="/collections" className="text-foreground/70">
                   Collections
+                </Link>
+                <Link href="/cart" className="text-foreground/70">
+                  Cart
                 </Link>
                 <Link href="/about" className="text-foreground/70">
                   About
@@ -110,18 +117,7 @@ export function Navbar() {
               <UserButton afterSignOutUrl="/" />
             )}
 
-            <Button variant="ghost" size="sm" className="relative">
-              <ShoppingBag className="h-5 w-5" />
-              {cartItemCount > 0 && (
-                <Badge
-                  variant="destructive"
-                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 text-xs"
-                >
-                  {cartItemCount}
-                </Badge>
-              )}
-              <span className="sr-only">Shopping cart</span>
-            </Button>
+            <CartSheet />
           </nav>
         </div>
       </div>
